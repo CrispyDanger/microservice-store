@@ -1,0 +1,23 @@
+[project]
+name = "notifications"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Artem Yakovenko", email = "crispyd2405@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "aiokafka>=0.15.0",
+    "events",
+]
+
+[project.scripts]
+notifications = "notifications:main"
+
+[build-system]
+requires = ["uv_build>=0.9.10,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.uv.sources]
+events = { workspace = true }

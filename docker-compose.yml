@@ -1,0 +1,86 @@
+x-app: &app
+  build: &app-build
+    context: .
+    dockerfile: Dockerfile
+  environment:
+    KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+  depends_on:
+    kafka-init:
+      condition: service_completed_successfully
+
+services:
+  kafka:
+    image: apache/kafka:latest
+    hostname: kafka
+    ports:
+      - "9092:9092" # for code running on your machine
+    volumes:
+      - kafka-data:/var/lib/kafka/data # survives `down`; wiped only by `down -v`
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LOG_DIRS: /var/lib/kafka/data # where topics, messages and offsets are stored
+      KAFKA_PROCESS_ROLES: broker,controller
+      # PLAINTEXT = inside the Docker network, PLAINTEXT_HOST = from your machine
+      KAFKA_LISTENERS: PLAINTEXT://:19092,CONTROLLER://:9093,PLAINTEXT_HOST://:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:19092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false" # kafka-init creates them
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+
+  kafka-init:
+    image: apache/kafka:latest
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        for topic in orders inventory payments; do
+          /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:19092 \
+            --create --if-not-exists --topic "$$topic" --partitions 3 --replication-factor 1
+        done
+
+  kafka-ui:
+    image: ghcr.io/kafbat/kafka-ui:v1.4.2
+    ports:
+      - "8080:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:19092
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  order:
+    <<: *app
+    build:
+      <<: *app-build
+      args: { SERVICE: order }
+    command: ["uvicorn", "order.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "8000:8000"
+
+  notifications:
+    <<: *app
+    build:
+      <<: *app-build
+      args: { SERVICE: notifications }
+
+  # Add inventory / payment / user the same way once they do something:
+  # inventory:
+  #   <<: *app
+  #   build: { <<: *app-build, args: { SERVICE: inventory } }
+
+volumes:
+  kafka-data:

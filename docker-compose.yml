@@ -8,6 +8,28 @@ x-app: &app
     kafka-init:
       condition: service_completed_successfully
 
+x-user: &user
+  build:
+    context: .
+    dockerfile: Dockerfile
+    args: { SERVICE: user, DEV: "true" } # DEV=true installs pytest/httpx for running tests
+  env_file: .env # container values: DB at user-db:5432, keys at /keys
+  volumes:
+    - ./services/user/keys:/keys:ro
+    # Bind mounts (two-way): code edits reach the container, and files the container
+    # creates (new migrations from makemigrations) show up in your project.
+    - ./services/user/src:/app/services/user/src
+    - ./services/user/tests:/app/services/user/tests
+  depends_on:
+    user-db: { condition: service_healthy }
+
+x-postgres: &postgres
+  image: postgres:18
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+    interval: 5s
+    retries: 10
+
 services:
   kafka:
     image: apache/kafka:latest
@@ -77,6 +99,38 @@ services:
       <<: *app-build
       args: { SERVICE: notifications }
 
+  #########################################################
+  # User Service
+  #########################################################
+  user-db:
+    <<: *postgres
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: user
+      POSTGRES_DB: user
+    ports: ["5433:5432"]
+    volumes: [user-db-data:/var/lib/postgresql]
+
+  # One-shot job: applies migrations once, then exits (same pattern as kafka-init)
+  user-migrate:
+    <<: *user
+    command: ["tortoise", "-c", "user.db.TORTOISE_ORM", "migrate"]
+
+  user:
+    <<: *user
+    # --reload restarts the app when files in the mounted src change
+    command: ["uvicorn", "user.main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
+    environment:
+      # File-change events don't reach containers through Windows bind mounts; poll instead
+      WATCHFILES_FORCE_POLLING: "true"
+    ports:
+      - "8001:8001"
+    depends_on:
+      user-db:
+        condition: service_healthy
+      user-migrate:
+        condition: service_completed_successfully
+
   # Add inventory / payment / user the same way once they do something:
   # inventory:
   #   <<: *app
@@ -84,3 +138,4 @@ services:
 
 volumes:
   kafka-data:
+  user-db-data:

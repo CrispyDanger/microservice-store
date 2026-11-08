@@ -56,3 +56,18 @@ async def registered(client, user_payload) -> dict:
     resp = await client.post("/auth/register", json=user_payload)
     assert resp.status_code == 201
     return resp.json()
+
+@pytest.fixture
+async def tokens(client, user_payload, registered) -> dict:
+    """Logged-in user; returns {access_token, refresh_token, token_type}."""
+    resp = await client.post(
+        "/auth/login",
+        json={"email": user_payload["email"], "password": user_payload["password"]},
+    )
+    assert resp.status_code == 200
+    return resp.json()
+
+
+@pytest.fixture
+def auth_headers(tokens) -> dict:
+    return {"Authorization": f"Bearer {tokens['access_token']}"}

@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from tortoise.contrib.fastapi import RegisterTortoise
 
 from user.exceptions import register_exception_handlers
-from user.api import health, register
+from user.api import health, register, login
 from user.db import TORTOISE_ORM
 
 
@@ -19,6 +19,7 @@ app = FastAPI(lifespan=lifespan)
 
 app.include_router(health.router)
 app.include_router(register.router)
+app.include_router(login.router)
 
 register_exception_handlers(app)
 

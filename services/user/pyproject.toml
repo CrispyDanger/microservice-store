@@ -7,11 +7,31 @@ authors = [
     { name = "Artem Yakovenko", email = "crispyd2405@gmail.com" }
 ]
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "fastapi[standard]>=0.162.0",
+    "pwdlib[argon2]>=0.3.1",
+    "pydantic-settings>=2.16.2",
+    "pyjwt[crypto]>=2.15.1",
+    "tortoise-orm[asyncpg]>=1.1.9",
+]
+
 
 [project.scripts]
-user = "user:main"
+user = "user.main:run"
 
 [build-system]
 requires = ["uv_build>=0.9.10,<0.10.0"]
 build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.2.0",
+    "pytest-asyncio>=1.4.1.post1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"                         # async def tests run without @pytest.mark.asyncio
+asyncio_default_fixture_loop_scope = "session" # one event loop for the whole run:
+asyncio_default_test_loop_scope = "session"    # Tortoise's connection pool belongs to one loop

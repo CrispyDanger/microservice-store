@@ -1,5 +1,7 @@
 from decimal import Decimal
 from typing import Literal
+from uuid import UUID
+
 from pydantic import BaseModel, Field
 
 from events.base import Event
@@ -14,6 +16,7 @@ class OrderItem(BaseModel):
 
 class OrderCreated(Event):
     type: Literal["OrderCreated"] = "OrderCreated"
+    user_id: UUID  # who placed it: lets notifications/payment know whom it belongs to
     items: list[OrderItem]
     total: Decimal
 

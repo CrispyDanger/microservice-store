@@ -16,7 +16,7 @@ async def get_current_user(
     if creds is None:
         raise InvalidToken()
     claims = decode_access_token(creds.credentials)
-    user = await User.get_or_none(id=claims["sub"])
+    user = await User.get_or_none(id=claims.user_id)
     if user is None or not user.is_active:
         raise InvalidToken()
     return user

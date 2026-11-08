@@ -17,9 +17,16 @@ def test_access_token_round_trip():
     user = fake_user()
     claims = tokens.decode_access_token(tokens.create_access_token(user))
 
-    assert claims["sub"] == str(user.id)
-    assert claims["role"] == "user"
-    assert claims["type"] == "access"
+    assert claims.user_id == user.id
+    assert claims.role == "user"
+
+
+def test_issued_token_has_the_access_type_claim():
+    raw = jwt.decode(
+        tokens.create_access_token(fake_user()), tokens._PUBLIC_KEY, algorithms=["RS256"]
+    )
+
+    assert raw["type"] == "access"
 
 
 def test_tampered_token_is_rejected():

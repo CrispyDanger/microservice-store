@@ -3,13 +3,14 @@ import hashlib
 from pathlib import Path
 import secrets
 
+import auth
 import jwt
+from auth import ACCESS_TOKEN_TYPE, ALGORITHM, AccessClaims
 
 from user.config import settings
 from user.exceptions import InvalidToken
 from user.models import User
 
-ALGORITHM = "RS256"
 _PRIVATE_KEY = Path(settings.jwt_private_key_path).read_text()
 _PUBLIC_KEY = Path(settings.jwt_public_key_path).read_text()
 
@@ -19,24 +20,20 @@ def create_access_token(user: User) -> str:
     payload = {
         "sub": str(user.id),
         "role": str(user.role),
-        "type": "access",
+        "type": ACCESS_TOKEN_TYPE,
         "iat": now,
         "exp": now + timedelta(minutes=settings.access_token_minutes),
     }
     return jwt.encode(payload, _PRIVATE_KEY, algorithm=ALGORITHM)
 
 
-def decode_access_token(token: str) -> dict:
+def decode_access_token(token: str) -> AccessClaims:
+    # Verification lives in libs/auth, shared with every other service; here we only
+    # translate the lib's error into this service's InvalidToken (same JSON error format)
     try:
-        claims = jwt.decode(
-            token, _PUBLIC_KEY, algorithms=[ALGORITHM],
-            options={"require": ["exp", "sub", "type"]},
-        )
-    except jwt.PyJWTError as exc:
+        return auth.decode_access_token(token, _PUBLIC_KEY)
+    except auth.InvalidToken as exc:
         raise InvalidToken() from exc
-    if claims["type"] != "access":
-        raise InvalidToken()
-    return claims
 
 
 def hash_refresh_token(raw: str) -> str:

@@ -20,6 +20,9 @@ x-user: &user
     # creates (new migrations from makemigrations) show up in your project.
     - ./services/user/src:/app/services/user/src
     - ./services/user/tests:/app/services/user/tests
+    # libs/auth is installed editable, so lib edits apply without a rebuild too
+    - ./libs/auth/src:/app/libs/auth/src
+    - ./libs/auth/tests:/app/libs/auth/tests
   depends_on:
     user-db: { condition: service_healthy }
 
@@ -90,6 +93,13 @@ services:
       <<: *app-build
       args: { SERVICE: order }
     command: ["uvicorn", "order.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      # Repeated from x-app: a service's own `environment` replaces the anchor's, it doesn't merge
+      KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+      JWT_PUBLIC_KEY_PATH: /keys/public.pem
+    volumes:
+      # Only the public key: order can verify tokens but never mint them
+      - ./services/user/keys/public.pem:/keys/public.pem:ro
     ports:
       - "8000:8000"
 

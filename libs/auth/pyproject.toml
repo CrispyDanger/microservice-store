@@ -1,0 +1,29 @@
+[project]
+name = "auth"
+version = "0.1.0"
+description = "Shared JWT access-token verification for the services"
+readme = "README.md"
+authors = [
+    { name = "Artem Yakovenko", email = "crispyd2405@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi>=0.162.0",
+    "pyjwt[crypto]>=2.15.1",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.10,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.2.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# pytest-asyncio comes from the user service's dev group in the shared image; the lib's
+# tests are all sync, this only silences its "loop scope unset" warning
+asyncio_default_fixture_loop_scope = "function"

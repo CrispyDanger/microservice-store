@@ -23,7 +23,7 @@ async def test_refresh_returns_a_new_pair(client, registered, tokens):
     body = resp.json()
     assert body["token_type"] == "bearer"
     assert body["refresh_token"] != tokens["refresh_token"]
-    assert decode_access_token(body["access_token"])["sub"] == registered["id"]
+    assert str(decode_access_token(body["access_token"]).user_id) == registered["id"]
 
 
 async def test_new_access_token_works(client, registered, tokens):

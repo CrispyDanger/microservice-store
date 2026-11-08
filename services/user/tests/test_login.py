@@ -12,7 +12,7 @@ async def test_login_returns_token_pair(client, user_payload, registered):
     assert resp.status_code == 200
     body = resp.json()
     assert body["token_type"] == "bearer"
-    assert decode_access_token(body["access_token"])["sub"] == registered["id"]
+    assert str(decode_access_token(body["access_token"]).user_id) == registered["id"]
 
 
 async def test_login_is_case_insensitive_on_email(client, user_payload, registered):

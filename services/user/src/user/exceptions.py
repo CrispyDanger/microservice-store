@@ -27,6 +27,11 @@ class Forbidden(UserServiceError):
     detail = "Not enough permissions"
 
 
+class UserNotFound(UserServiceError):
+    status_code = 404
+    detail = "User not found"
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(UserServiceError)
     async def _handle(request: Request, exc: UserServiceError) -> JSONResponse:

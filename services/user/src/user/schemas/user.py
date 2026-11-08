@@ -21,3 +21,13 @@ class UserOutput(BaseModel):
     last_name: str
     role: Role
     created_at: datetime
+
+
+class UserUpdateInput(BaseModel):
+    first_name: str | None = Field(default=None, min_length=1, max_length=255)
+    last_name: str | None = Field(default=None, min_length=1, max_length=255)
+
+
+class ChangePasswordInput(BaseModel):
+    old_password: str
+    new_password: str = Field(min_length=8, max_length=128)

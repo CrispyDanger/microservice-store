@@ -76,3 +76,11 @@ async def test_failed_change_does_not_revoke_sessions(client, registered, auth_h
     await change(client, auth_headers, "wrong-old-pass")
 
     assert await RefreshToken.filter(user_id=registered["id"], revoked_at=None).count() == 1
+
+
+async def test_old_refresh_token_stops_working_after_change(client, user_payload, tokens, auth_headers):
+    await change(client, auth_headers, user_payload["password"])
+
+    resp = await client.post("/auth/refresh", json={"refresh_token": tokens["refresh_token"]})
+
+    assert resp.status_code == 401

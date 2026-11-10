@@ -87,21 +87,40 @@ services:
       kafka:
         condition: service_healthy
 
-  order:
-    <<: *app
-    build:
-      <<: *app-build
-      args: { SERVICE: order }
-    command: ["uvicorn", "order.main:app", "--host", "0.0.0.0", "--port", "8000"]
+  #########################################################
+  # Order Service
+  #########################################################
+  order-db:
+    <<: *postgres
     environment:
-      # Repeated from x-app: a service's own `environment` replaces the anchor's, it doesn't merge
+      POSTGRES_USER: order
+      POSTGRES_PASSWORD: order
+      POSTGRES_DB: order
+    ports: ["5434:5432"]
+    volumes: [order-db-data:/var/lib/postgresql]
+
+  order:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args: { SERVICE: order, DEV: "true" }
+    env_file: .env # ORDER_* values: DB at order-db:5432, public key at /keys/public.pem
+    command: ["uvicorn", "order.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:19092
-      JWT_PUBLIC_KEY_PATH: /keys/public.pem
+      WATCHFILES_FORCE_POLLING: "true"
     volumes:
       # Only the public key: order can verify tokens but never mint them
       - ./services/user/keys/public.pem:/keys/public.pem:ro
+      - ./services/order/src:/app/services/order/src
+      # Workspace libs are installed editable, so lib edits apply without a rebuild
+      - ./libs/auth/src:/app/libs/auth/src
+      - ./libs/events/src:/app/libs/events/src
     ports:
       - "8000:8000"
+    depends_on:
+      kafka-init: { condition: service_completed_successfully }
+      order-db: { condition: service_healthy }
 
   notifications:
     <<: *app
@@ -149,3 +168,4 @@ services:
 volumes:
   kafka-data:
   user-db-data:
+  order-db-data:

@@ -1076,6 +1076,7 @@ dependencies = [
     { name = "auth" },
     { name = "events" },
     { name = "fastapi", extra = ["standard"] },
+    { name = "pydantic-settings" },
 ]
 
 [package.metadata]
@@ -1084,6 +1085,7 @@ requires-dist = [
     { name = "auth", editable = "libs/auth" },
     { name = "events", editable = "libs/events" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.162.0" },
+    { name = "pydantic-settings", specifier = ">=2.16.2" },
 ]
 
 [[package]]

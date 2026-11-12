@@ -10,13 +10,13 @@ ORDERS_TOPIC = "orders"
 
 
 class OrderItem(BaseModel):
-    sku: str
+    product_id: UUID
     quantity: int = Field(gt=0)
 
 
 class OrderCreated(Event):
     type: Literal["OrderCreated"] = "OrderCreated"
-    user_id: UUID  # who placed it: lets notifications/payment know whom it belongs to
+    user_id: UUID
     items: list[OrderItem]
     total: Decimal
 

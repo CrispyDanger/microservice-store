@@ -1077,6 +1077,7 @@ dependencies = [
     { name = "events" },
     { name = "fastapi", extra = ["standard"] },
     { name = "pydantic-settings" },
+    { name = "tortoise-orm", extra = ["asyncpg"] },
 ]
 
 [package.metadata]
@@ -1086,6 +1087,7 @@ requires-dist = [
     { name = "events", editable = "libs/events" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.162.0" },
     { name = "pydantic-settings", specifier = ">=2.16.2" },
+    { name = "tortoise-orm", extras = ["asyncpg"], specifier = ">=1.1.9" },
 ]
 
 [[package]]

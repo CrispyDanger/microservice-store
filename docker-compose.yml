@@ -26,6 +26,27 @@ x-user: &user
   depends_on:
     user-db: { condition: service_healthy }
 
+x-order: &order
+  build:
+    context: .
+    dockerfile: Dockerfile
+    args: { SERVICE: order, DEV: "true" }
+  env_file: .env # ORDER_* values: DB at order-db:5432, public key at /keys/public.pem
+  environment:
+    KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+    # File-change events don't reach containers through Windows bind mounts; poll instead
+    WATCHFILES_FORCE_POLLING: "true"
+  volumes:
+    # Only the public key: order can verify tokens but never mint them
+    - ./services/user/keys/public.pem:/keys/public.pem:ro
+    # Two-way: code edits reach the container, generated migrations reach the project
+    - ./services/order/src:/app/services/order/src
+    # Workspace libs are installed editable, so lib edits apply without a rebuild
+    - ./libs/auth/src:/app/libs/auth/src
+    - ./libs/events/src:/app/libs/events/src
+  depends_on:
+    order-db: { condition: service_healthy }
+
 x-postgres: &postgres
   image: postgres:18
   healthcheck:
@@ -99,28 +120,20 @@ services:
     ports: ["5434:5432"]
     volumes: [order-db-data:/var/lib/postgresql]
 
+  # One-shot job: applies migrations once, then exits (same pattern as user-migrate)
+  order-migrate:
+    <<: *order
+    command: ["tortoise", "-c", "order.db.TORTOISE_ORM", "migrate"]
+
   order:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args: { SERVICE: order, DEV: "true" }
-    env_file: .env # ORDER_* values: DB at order-db:5432, public key at /keys/public.pem
+    <<: *order
     command: ["uvicorn", "order.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
-    environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka:19092
-      WATCHFILES_FORCE_POLLING: "true"
-    volumes:
-      # Only the public key: order can verify tokens but never mint them
-      - ./services/user/keys/public.pem:/keys/public.pem:ro
-      - ./services/order/src:/app/services/order/src
-      # Workspace libs are installed editable, so lib edits apply without a rebuild
-      - ./libs/auth/src:/app/libs/auth/src
-      - ./libs/events/src:/app/libs/events/src
     ports:
       - "8000:8000"
     depends_on:
       kafka-init: { condition: service_completed_successfully }
       order-db: { condition: service_healthy }
+      order-migrate: { condition: service_completed_successfully }
 
   notifications:
     <<: *app

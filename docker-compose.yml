@@ -41,6 +41,7 @@ x-order: &order
     - ./services/user/keys/public.pem:/keys/public.pem:ro
     # Two-way: code edits reach the container, generated migrations reach the project
     - ./services/order/src:/app/services/order/src
+    - ./services/order/tests:/app/services/order/tests
     # Workspace libs are installed editable, so lib edits apply without a rebuild
     - ./libs/auth/src:/app/libs/auth/src
     - ./libs/events/src:/app/libs/events/src

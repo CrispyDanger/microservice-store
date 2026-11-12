@@ -5,7 +5,7 @@ from tortoise.transactions import in_transaction
 
 from events.orders import ORDERS_TOPIC, OrderCreated
 from order.models import Order, OrderItem
-from order.schemas.order import OrderItemOutput, OrderOutput, PlaceOrderInput
+from order.schemas.order import OrderOutput, PlaceOrderInput
 
 
 async def place_order(
@@ -25,12 +25,5 @@ async def place_order(
     key, value = event.to_kafka()
     await producer.send_and_wait(ORDERS_TOPIC, key=key, value=value)
 
-    return OrderOutput(
-        id=order.id,
-        user_id=order.user_id,
-        status=order.status,
-        total=order.total,
-        cancel_reason=order.cancel_reason,
-        items=[OrderItemOutput.model_validate(item) for item in items],
-        created_at=order.created_at,
-    )
+    await order.fetch_related("items")
+    return OrderOutput.model_validate(order)

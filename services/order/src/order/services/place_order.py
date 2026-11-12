@@ -1,20 +1,36 @@
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from aiokafka import AIOKafkaProducer
+from tortoise.transactions import in_transaction
 
 from events.orders import ORDERS_TOPIC, OrderCreated
-from order.schemas.order import PlaceOrderInput, PlaceOrderOutput
+from order.models import Order, OrderItem
+from order.schemas.order import OrderItemOutput, OrderOutput, PlaceOrderInput
 
 
 async def place_order(
     data: PlaceOrderInput, user_id: UUID, producer: AIOKafkaProducer
-) -> PlaceOrderOutput:
-    order_id = f"ord-{uuid4().hex[:8]}"
-    # Next: save the order as PENDING in this service's own database first.
-    # user_id will be a plain UUID column there, not a foreign key: users live in another DB.
+) -> OrderOutput:
+    async with in_transaction():
+        order = await Order.create(user_id=user_id, total=data.total)
+        items = [
+            OrderItem(order=order, product_id=item.product_id, quantity=item.quantity)
+            for item in data.items
+        ]
+        await OrderItem.bulk_create(items)
+
     event = OrderCreated(
-        order_id=order_id, user_id=user_id, items=data.items, total=data.total
+        order_id=str(order.id), user_id=user_id, items=data.items, total=order.total
     )
     key, value = event.to_kafka()
     await producer.send_and_wait(ORDERS_TOPIC, key=key, value=value)
-    return PlaceOrderOutput(order_id=order_id, user_id=user_id, status="PENDING")
+
+    return OrderOutput(
+        id=order.id,
+        user_id=order.user_id,
+        status=order.status,
+        total=order.total,
+        cancel_reason=order.cancel_reason,
+        items=[OrderItemOutput.model_validate(item) for item in items],
+        created_at=order.created_at,
+    )

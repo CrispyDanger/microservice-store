@@ -12,7 +12,7 @@ class OrderStatus(StrEnum):
 
 class Order(models.Model):
     id = fields.UUIDField(primary_key=True)
-    user_id = fields.UUIDField(db_index=True)
+    user_id = fields.UUIDField()
     status = fields.CharEnumField(OrderStatus, default=OrderStatus.PENDING)
     total = fields.DecimalField(max_digits=12, decimal_places=2)
     cancel_reason = fields.CharField(max_length=255, null=True)
@@ -26,6 +26,7 @@ class Order(models.Model):
     class Meta:
         table = "orders"
         ordering = ["-created_at"]
+        indexes = (("user_id", "created_at", "id"),)
 
 
 class OrderItem(models.Model):
@@ -40,4 +41,5 @@ class OrderItem(models.Model):
 
     class Meta:
         table = "order_items"
+        ordering = ["product_id"]
         unique_together = (("order", "product_id"),)

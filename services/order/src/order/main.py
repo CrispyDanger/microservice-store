@@ -5,7 +5,7 @@ from aiokafka import AIOKafkaProducer
 from fastapi import FastAPI
 from tortoise.contrib.fastapi import RegisterTortoise
 
-from order.api import get_order, health, place_order
+from order.api import cancel_order, get_order, health, list_orders, place_order
 from order.config import settings
 from order.db import TORTOISE_ORM
 from order.exceptions import register_exception_handlers
@@ -28,6 +28,8 @@ app = FastAPI(title="order", lifespan=lifespan)
 app.include_router(health.router)
 app.include_router(place_order.router)
 app.include_router(get_order.router)
+app.include_router(list_orders.router)
+app.include_router(cancel_order.router)
 
 register_exception_handlers(app)
 

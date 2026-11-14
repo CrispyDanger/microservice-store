@@ -21,6 +21,10 @@ class PlaceOrderInput(BaseModel):
         return items
 
 
+class CancelOrderInput(BaseModel):
+    reason: str | None = Field(default=None, min_length=1, max_length=255)
+
+
 class OrderItemOutput(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     product_id: UUID
@@ -36,3 +40,10 @@ class OrderOutput(BaseModel):
     cancel_reason: str | None
     items: list[OrderItemOutput]
     created_at: datetime
+
+
+class OrderListOutput(BaseModel):
+    orders: list[OrderOutput]
+    count: int
+    limit: int
+    offset: int

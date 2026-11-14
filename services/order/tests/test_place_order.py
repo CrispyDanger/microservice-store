@@ -47,7 +47,7 @@ async def test_place_order_returns_the_pending_order(client, auth_headers, user_
     assert body["status"] == "pending"
     assert body["total"] == "29.97"
     assert body["cancel_reason"] is None
-    assert body["items"] == order_payload["items"]
+    assert body["items"] == sorted(order_payload["items"], key=lambda i: i["product_id"])
     UUID(body["id"])
 
 

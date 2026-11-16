@@ -1,10 +1,14 @@
 import pytest
 
+from tests.conftest import with_new_key
+
 
 @pytest.fixture
 def place(client, order_payload):
     async def _place(headers: dict, total: str = "29.97") -> dict:
-        resp = await client.post("/orders", json={**order_payload, "total": total}, headers=headers)
+        resp = await client.post(
+            "/orders", json={**order_payload, "total": total}, headers=with_new_key(headers)
+        )
         assert resp.status_code == 201
         return resp.json()
 

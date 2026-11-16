@@ -66,7 +66,7 @@ async def db():
 @pytest.fixture(autouse=True)
 async def clean_tables():
     conn = Tortoise.get_connection("default")
-    await conn.execute_script("TRUNCATE orders, order_items CASCADE")
+    await conn.execute_script("TRUNCATE orders, order_items, idempotency_keys CASCADE")
 
 
 class FakeProducer:
@@ -111,6 +111,10 @@ def make_token() -> Callable[..., str]:
         return jwt.encode(claims, private_key, algorithm="RS256")
 
     return _make
+
+
+def with_new_key(headers: dict) -> dict:
+    return {**headers, "Idempotency-Key": str(uuid4())}
 
 
 @pytest.fixture

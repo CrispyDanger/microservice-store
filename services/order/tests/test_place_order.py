@@ -8,7 +8,7 @@ import pytest
 from events.orders import ORDERS_TOPIC
 from order.models import Order, OrderItem, OrderStatus
 
-from tests.conftest import OTHER_PRIVATE_KEY
+from tests.conftest import OTHER_PRIVATE_KEY, with_new_key
 
 
 async def test_place_order_requires_a_token(client, order_payload):
@@ -39,7 +39,7 @@ async def test_place_order_rejects_an_expired_token(client, make_token, order_pa
 
 
 async def test_place_order_returns_the_pending_order(client, auth_headers, user_id, order_payload):
-    resp = await client.post("/orders", json=order_payload, headers=auth_headers)
+    resp = await client.post("/orders", json=order_payload, headers=with_new_key(auth_headers))
 
     assert resp.status_code == 201
     body = resp.json()
@@ -54,7 +54,7 @@ async def test_place_order_returns_the_pending_order(client, auth_headers, user_
 async def test_place_order_saves_the_order_and_its_items(
     client, auth_headers, user_id, order_payload
 ):
-    resp = await client.post("/orders", json=order_payload, headers=auth_headers)
+    resp = await client.post("/orders", json=order_payload, headers=with_new_key(auth_headers))
 
     order = await Order.get(id=resp.json()["id"])
     assert order.user_id == user_id
@@ -70,7 +70,7 @@ async def test_place_order_saves_the_order_and_its_items(
 async def test_place_order_publishes_order_created(
     client, producer, auth_headers, user_id, order_payload
 ):
-    resp = await client.post("/orders", json=order_payload, headers=auth_headers)
+    resp = await client.post("/orders", json=order_payload, headers=with_new_key(auth_headers))
     order_id = resp.json()["id"]
 
     assert len(producer.sent) == 1
@@ -95,7 +95,7 @@ async def test_place_order_rejects_the_same_product_twice(client, auth_headers, 
         ],
     }
 
-    resp = await client.post("/orders", json=payload, headers=auth_headers)
+    resp = await client.post("/orders", json=payload, headers=with_new_key(auth_headers))
 
     assert resp.status_code == 422
     assert await Order.all().count() == 0
@@ -115,7 +115,9 @@ async def test_place_order_rejects_the_same_product_twice(client, auth_headers, 
 async def test_place_order_rejects_invalid_input(
     client, producer, auth_headers, order_payload, change
 ):
-    resp = await client.post("/orders", json={**order_payload, **change}, headers=auth_headers)
+    resp = await client.post(
+        "/orders", json={**order_payload, **change}, headers=with_new_key(auth_headers)
+    )
 
     assert resp.status_code == 422
     assert await Order.all().count() == 0

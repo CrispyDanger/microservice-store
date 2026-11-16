@@ -2,10 +2,12 @@ from uuid import uuid4
 
 import pytest
 
+from tests.conftest import with_new_key
+
 
 @pytest.fixture
 async def placed(client, auth_headers, order_payload) -> dict:
-    resp = await client.post("/orders", json=order_payload, headers=auth_headers)
+    resp = await client.post("/orders", json=order_payload, headers=with_new_key(auth_headers))
     assert resp.status_code == 201
     return resp.json()
 

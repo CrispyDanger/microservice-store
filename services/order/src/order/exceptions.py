@@ -12,6 +12,11 @@ class OrderNotFound(OrderServiceError):
     detail = "Order not found"
 
 
+class IdempotencyKeyReused(OrderServiceError):
+    status_code = 422
+    detail = "Idempotency-Key was already used with a different request"
+
+
 class OrderNotCancellable(OrderServiceError):
     status_code = 409
     detail = "Only pending orders can be cancelled"

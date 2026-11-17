@@ -40,7 +40,6 @@ from httpx import ASGITransport, AsyncClient  # noqa: E402
 from tortoise import Tortoise  # noqa: E402
 
 from order.db import TORTOISE_ORM  # noqa: E402
-from order.dependencies import get_producer  # noqa: E402
 from order.main import app  # noqa: E402
 
 
@@ -66,7 +65,7 @@ async def db():
 @pytest.fixture(autouse=True)
 async def clean_tables():
     conn = Tortoise.get_connection("default")
-    await conn.execute_script("TRUNCATE orders, order_items, idempotency_keys CASCADE")
+    await conn.execute_script("TRUNCATE orders, order_items, idempotency_keys, events CASCADE")
 
 
 class FakeProducer:
@@ -78,15 +77,12 @@ class FakeProducer:
 
 
 @pytest.fixture
-def producer():
-    fake = FakeProducer()
-    app.dependency_overrides[get_producer] = lambda: fake
-    yield fake
-    app.dependency_overrides.pop(get_producer, None)
+def producer() -> FakeProducer:
+    return FakeProducer()
 
 
 @pytest.fixture
-async def client(producer):
+async def client():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         yield c
 

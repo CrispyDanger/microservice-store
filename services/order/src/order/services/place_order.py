@@ -3,13 +3,13 @@ import json
 from decimal import Decimal
 from uuid import UUID
 
-from aiokafka import AIOKafkaProducer
 from tortoise.exceptions import IntegrityError
 from tortoise.transactions import in_transaction
 
 from events.orders import ORDERS_TOPIC, OrderCreated
 from order.exceptions import IdempotencyKeyReused
 from order.models import IdempotencyKey, Order, OrderItem
+from order.publishing import record_event
 from order.schemas.order import OrderOutput, PlaceOrderInput
 
 
@@ -34,12 +34,7 @@ async def _check_idempotency(user_id: UUID, key: UUID, request_hash: str) -> Ord
     return OrderOutput.model_validate(order)
 
 
-async def place_order(
-    data: PlaceOrderInput,
-    user_id: UUID,
-    idempotency_key: UUID,
-    producer: AIOKafkaProducer,
-) -> OrderOutput:
+async def place_order(data: PlaceOrderInput, user_id: UUID, idempotency_key: UUID) -> OrderOutput:
     request_hash = hash_request(data)
     try:
         async with in_transaction():
@@ -52,17 +47,15 @@ async def place_order(
             await IdempotencyKey.create(
                 user_id=user_id, key=idempotency_key, request_hash=request_hash, order=order
             )
+            event = OrderCreated(
+                order_id=str(order.id), user_id=user_id, items=data.items, total=order.total
+            )
+            await record_event(ORDERS_TOPIC, event)
     except IntegrityError:
         idemp_order = await _check_idempotency(user_id, idempotency_key, request_hash)
         if idemp_order is not None:
             return idemp_order
         raise
-
-    event = OrderCreated(
-        order_id=str(order.id), user_id=user_id, items=data.items, total=order.total
-    )
-    key, value = event.to_kafka()
-    await producer.send_and_wait(ORDERS_TOPIC, key=key, value=value)
 
     await order.fetch_related("items")
     return OrderOutput.model_validate(order)

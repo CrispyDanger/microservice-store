@@ -1,26 +1,26 @@
-from contextlib import asynccontextmanager
+import asyncio
+from contextlib import asynccontextmanager, suppress
 
 import uvicorn
-from aiokafka import AIOKafkaProducer
 from fastapi import FastAPI
 from tortoise.contrib.fastapi import RegisterTortoise
 
 from order.api import cancel_order, get_order, health, list_orders, place_order
-from order.config import settings
 from order.db import TORTOISE_ORM
 from order.exceptions import register_exception_handlers
+from order.publishing import run_relay
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with RegisterTortoise(app, config=TORTOISE_ORM):
-        producer = AIOKafkaProducer(bootstrap_servers=settings.kafka_bootstrap_servers)
-        await producer.start()
-        app.state.producer = producer
+        relay = asyncio.create_task(run_relay())
         try:
             yield
         finally:
-            await producer.stop()
+            relay.cancel()
+            with suppress(asyncio.CancelledError):
+                await relay
 
 
 app = FastAPI(title="order", lifespan=lifespan)

@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 from tortoise.transactions import in_transaction
 
-from order.models import IdempotencyKey, Order
+from order.models import Event, IdempotencyKey, Order
 from order.schemas.order import PlaceOrderInput
 from order.services.place_order import hash_request
 
@@ -31,7 +31,7 @@ async def test_place_order_rejects_a_non_uuid_key(client, auth_headers, order_pa
 
 
 async def test_retry_with_the_same_key_returns_the_same_order(
-    client, producer, key_headers, order_payload
+    client, key_headers, order_payload
 ):
     first = await client.post("/orders", json=order_payload, headers=key_headers)
     retry = await client.post("/orders", json=order_payload, headers=key_headers)
@@ -39,7 +39,7 @@ async def test_retry_with_the_same_key_returns_the_same_order(
     assert first.status_code == retry.status_code == 201
     assert retry.json() == first.json()
     assert await Order.all().count() == 1
-    assert len(producer.sent) == 1
+    assert await Event.all().count() == 1
 
 
 async def test_retry_with_reordered_items_counts_as_the_same_request(
@@ -55,7 +55,7 @@ async def test_retry_with_reordered_items_counts_as_the_same_request(
 
 
 async def test_same_key_with_a_different_body_is_rejected(
-    client, producer, key_headers, order_payload
+    client, key_headers, order_payload
 ):
     await client.post("/orders", json=order_payload, headers=key_headers)
 
@@ -66,7 +66,7 @@ async def test_same_key_with_a_different_body_is_rejected(
     assert resp.status_code == 422
     assert resp.json() == {"detail": "Idempotency-Key was already used with a different request"}
     assert await Order.all().count() == 1
-    assert len(producer.sent) == 1
+    assert await Event.all().count() == 1
 
 
 async def test_the_same_key_from_different_users_creates_two_orders(
@@ -82,7 +82,7 @@ async def test_the_same_key_from_different_users_creates_two_orders(
 
 
 async def test_a_request_racing_an_uncommitted_one_returns_its_order(
-    client, producer, user_id, key_headers, order_payload
+    client, user_id, key_headers, order_payload
 ):
     key = key_headers["Idempotency-Key"]
     request_hash = hash_request(PlaceOrderInput.model_validate(order_payload))
@@ -112,4 +112,4 @@ async def test_a_request_racing_an_uncommitted_one_returns_its_order(
     assert resp.status_code == 201
     assert resp.json()["id"] == winner["id"]
     assert await Order.all().count() == 1
-    assert producer.sent == []
+    assert await Event.all().count() == 0

@@ -1,4 +1,3 @@
-import json
 from datetime import timedelta
 from decimal import Decimal
 from uuid import UUID
@@ -6,7 +5,7 @@ from uuid import UUID
 import pytest
 
 from events.orders import ORDERS_TOPIC
-from order.models import Order, OrderItem, OrderStatus
+from order.models import Event, Order, OrderItem, OrderStatus
 
 from tests.conftest import OTHER_PRIVATE_KEY, with_new_key
 
@@ -67,18 +66,19 @@ async def test_place_order_saves_the_order_and_its_items(
     ]
 
 
-async def test_place_order_publishes_order_created(
-    client, producer, auth_headers, user_id, order_payload
+async def test_place_order_records_order_created(
+    client, auth_headers, user_id, order_payload
 ):
     resp = await client.post("/orders", json=order_payload, headers=with_new_key(auth_headers))
     order_id = resp.json()["id"]
 
-    assert len(producer.sent) == 1
-    topic, key, value = producer.sent[0]
-    assert topic == ORDERS_TOPIC
-    assert key == order_id.encode()
-    event = json.loads(value)
+    [row] = await Event.all()
+    assert row.topic == ORDERS_TOPIC
+    assert row.key == order_id
+    assert row.published_at is None
+    event = row.payload
     assert event["type"] == "OrderCreated"
+    assert event["event_id"] == str(row.id)
     assert event["order_id"] == order_id
     assert event["user_id"] == str(user_id)
     assert event["items"] == order_payload["items"]
@@ -112,13 +112,11 @@ async def test_place_order_rejects_the_same_product_twice(client, auth_headers, 
         {"total": "1.999"},
     ],
 )
-async def test_place_order_rejects_invalid_input(
-    client, producer, auth_headers, order_payload, change
-):
+async def test_place_order_rejects_invalid_input(client, auth_headers, order_payload, change):
     resp = await client.post(
         "/orders", json={**order_payload, **change}, headers=with_new_key(auth_headers)
     )
 
     assert resp.status_code == 422
     assert await Order.all().count() == 0
-    assert producer.sent == []
+    assert await Event.all().count() == 0

@@ -1,21 +1,20 @@
 import asyncio
-import json
 from uuid import uuid4
 
 import pytest
 from tortoise.transactions import in_transaction
 
 from events.orders import ORDERS_TOPIC
-from order.models import Order, OrderStatus
+from order.models import Event, Order, OrderStatus
 
 from tests.conftest import with_new_key
 
 
 @pytest.fixture
-async def placed(client, producer, auth_headers, order_payload) -> dict:
+async def placed(client, auth_headers, order_payload) -> dict:
     resp = await client.post("/orders", json=order_payload, headers=with_new_key(auth_headers))
     assert resp.status_code == 201
-    producer.sent.clear()
+    await Event.all().delete()
     return resp.json()
 
 
@@ -48,29 +47,28 @@ async def test_cancel_order_saves_the_given_reason(client, auth_headers, placed)
     assert order.cancel_reason == "changed my mind"
 
 
-async def test_cancel_order_publishes_order_cancelled(client, producer, auth_headers, placed):
+async def test_cancel_order_records_order_cancelled(client, auth_headers, placed):
     await client.post(
         f"/orders/{placed['id']}/cancel", json={"reason": "too slow"}, headers=auth_headers
     )
 
-    assert len(producer.sent) == 1
-    topic, key, value = producer.sent[0]
-    assert topic == ORDERS_TOPIC
-    assert key == placed["id"].encode()
-    event = json.loads(value)
+    [row] = await Event.all()
+    assert row.topic == ORDERS_TOPIC
+    assert row.key == placed["id"]
+    event = row.payload
     assert event["type"] == "OrderCancelled"
     assert event["order_id"] == placed["id"]
     assert event["reason"] == "too slow"
 
 
-async def test_cancel_order_hides_other_users_orders(client, producer, make_token, placed):
+async def test_cancel_order_hides_other_users_orders(client, make_token, placed):
     other = {"Authorization": f"Bearer {make_token()}"}
 
     resp = await client.post(f"/orders/{placed['id']}/cancel", headers=other)
 
     assert resp.status_code == 404
     assert (await Order.get(id=placed["id"])).status == OrderStatus.PENDING
-    assert producer.sent == []
+    assert await Event.all().count() == 0
 
 
 async def test_cancel_order_returns_404_for_an_unknown_id(client, auth_headers):
@@ -79,25 +77,25 @@ async def test_cancel_order_returns_404_for_an_unknown_id(client, auth_headers):
     assert resp.status_code == 404
 
 
-async def test_cancel_order_twice_is_rejected(client, producer, auth_headers, placed):
+async def test_cancel_order_twice_is_rejected(client, auth_headers, placed):
     await client.post(f"/orders/{placed['id']}/cancel", headers=auth_headers)
-    producer.sent.clear()
+    await Event.all().delete()
 
     resp = await client.post(f"/orders/{placed['id']}/cancel", headers=auth_headers)
 
     assert resp.status_code == 409
     assert resp.json() == {"detail": "Only pending orders can be cancelled"}
-    assert producer.sent == []
+    assert await Event.all().count() == 0
 
 
-async def test_cancel_order_rejects_a_confirmed_order(client, producer, auth_headers, placed):
+async def test_cancel_order_rejects_a_confirmed_order(client, auth_headers, placed):
     await Order.filter(id=placed["id"]).update(status=OrderStatus.CONFIRMED)
 
     resp = await client.post(f"/orders/{placed['id']}/cancel", headers=auth_headers)
 
     assert resp.status_code == 409
     assert (await Order.get(id=placed["id"])).status == OrderStatus.CONFIRMED
-    assert producer.sent == []
+    assert await Event.all().count() == 0
 
 
 @pytest.mark.parametrize("reason", ["", "x" * 256])
@@ -110,7 +108,7 @@ async def test_cancel_order_rejects_an_invalid_reason(client, auth_headers, plac
 
 
 async def test_cancel_waits_for_a_concurrent_confirm_and_then_loses(
-    client, producer, auth_headers, placed
+    client, auth_headers, placed
 ):
     locked, release = asyncio.Event(), asyncio.Event()
 
@@ -135,4 +133,4 @@ async def test_cancel_waits_for_a_concurrent_confirm_and_then_loses(
 
     assert resp.status_code == 409
     assert (await Order.get(id=placed["id"])).status == OrderStatus.CONFIRMED
-    assert producer.sent == []
+    assert await Event.all().count() == 0

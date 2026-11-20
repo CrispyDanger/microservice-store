@@ -22,7 +22,7 @@ async def order() -> Order:
 
 
 def paid(order: Order) -> PaymentSucceeded:
-    return PaymentSucceeded(order_id=str(order.id), payment_id=uuid4(), amount=order.total)
+    return PaymentSucceeded(order_id=order.id, payment_id=uuid4(), amount=order.total)
 
 
 async def test_payment_succeeded_confirms_the_order(order):
@@ -44,7 +44,7 @@ async def test_payment_succeeded_confirms_the_order(order):
     ],
 )
 async def test_failures_cancel_the_order_with_a_reason(order, handle, event_cls, expected_reason):
-    await handle(event_cls(order_id=str(order.id), reason="card declined"))
+    await handle(event_cls(order_id=order.id, reason="card declined"))
 
     await order.refresh_from_db()
     assert order.status == OrderStatus.CANCELLED
@@ -55,7 +55,7 @@ async def test_failures_cancel_the_order_with_a_reason(order, handle, event_cls,
 
 
 async def test_a_long_reason_is_cut_to_fit_the_column(order):
-    await handle_payment_failed(PaymentFailed(order_id=str(order.id), reason="x" * 500))
+    await handle_payment_failed(PaymentFailed(order_id=order.id, reason="x" * 500))
 
     await order.refresh_from_db()
     assert len(order.cancel_reason) == 255
@@ -83,7 +83,7 @@ async def test_an_event_for_a_cancelled_order_changes_nothing(order):
 
 
 async def test_an_event_for_an_unknown_order_is_marked_processed():
-    event = PaymentFailed(order_id=str(uuid4()), reason="card declined")
+    event = PaymentFailed(order_id=uuid4(), reason="card declined")
 
     await handle_payment_failed(event)
 

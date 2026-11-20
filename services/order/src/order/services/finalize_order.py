@@ -34,7 +34,7 @@ async def _confirm(event: BaseEvent) -> None:
                 return
             order.status = OrderStatus.CONFIRMED
             await order.save(update_fields=["status", "updated_at"])
-            await record_event(ORDERS_TOPIC, OrderConfirmed(order_id=str(order.id)))
+            await record_event(ORDERS_TOPIC, OrderConfirmed(order_id=order.id))
     except IntegrityError:
         logger.info("Duplicate event %s skipped", event.event_id)
 
@@ -49,7 +49,7 @@ async def _cancel(event: BaseEvent, reason: str) -> None:
             order.cancel_reason = reason[:255]
             await order.save(update_fields=["status", "cancel_reason", "updated_at"])
             await record_event(
-                ORDERS_TOPIC, OrderCancelled(order_id=str(order.id), reason=order.cancel_reason)
+                ORDERS_TOPIC, OrderCancelled(order_id=order.id, reason=order.cancel_reason)
             )
     except IntegrityError:
         logger.info("Duplicate event %s skipped", event.event_id)

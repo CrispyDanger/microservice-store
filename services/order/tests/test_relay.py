@@ -19,7 +19,7 @@ class BrokenProducer:
 
 
 async def _record(reason: str = "test") -> OrderCancelled:
-    event = OrderCancelled(order_id=str(uuid4()), reason=reason)
+    event = OrderCancelled(order_id=uuid4(), reason=reason)
     await record_event(ORDERS_TOPIC, event)
     return event
 

@@ -22,7 +22,7 @@ async def record_event(topic: str, event: BaseEvent) -> None:
     await Event.create(
         id=event.event_id,
         topic=topic,
-        key=event.order_id,
+        key=str(event.order_id),
         payload=event.model_dump(mode="json"),
     )
 

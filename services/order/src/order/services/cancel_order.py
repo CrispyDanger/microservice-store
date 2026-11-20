@@ -21,7 +21,7 @@ async def cancel_order(order_id: UUID, user_id: UUID, reason: str | None) -> Ord
         order.status = OrderStatus.CANCELLED
         order.cancel_reason = reason or DEFAULT_CANCEL_REASON
         await order.save(update_fields=["status", "cancel_reason", "updated_at"])
-        event = OrderCancelled(order_id=str(order.id), reason=order.cancel_reason)
+        event = OrderCancelled(order_id=order.id, reason=order.cancel_reason)
         await record_event(ORDERS_TOPIC, event)
 
     await order.fetch_related("items")

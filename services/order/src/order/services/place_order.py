@@ -48,7 +48,7 @@ async def place_order(data: PlaceOrderInput, user_id: UUID, idempotency_key: UUI
                 user_id=user_id, key=idempotency_key, request_hash=request_hash, order=order
             )
             event = OrderCreated(
-                order_id=str(order.id), user_id=user_id, items=data.items, total=order.total
+                order_id=order.id, user_id=user_id, items=data.items, total=order.total
             )
             await record_event(ORDERS_TOPIC, event)
     except IntegrityError:

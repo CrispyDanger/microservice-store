@@ -13,16 +13,15 @@ from order.models import ProcessedEvent
 @pytest.mark.parametrize(
     "event",
     [
-        StockReserved(order_id=str(uuid4())),
-        StockRejected(order_id=str(uuid4()), reason="out of stock"),
-        PaymentSucceeded(order_id=str(uuid4()), payment_id=uuid4(), amount=Decimal("29.97")),
-        PaymentFailed(order_id=str(uuid4()), reason="card declined"),
+        StockReserved(order_id=uuid4()),
+        StockRejected(order_id=uuid4(), reason="out of stock"),
+        PaymentSucceeded(order_id=uuid4(), payment_id=uuid4(), amount=Decimal("29.97")),
+        PaymentFailed(order_id=uuid4(), reason="card declined"),
     ],
 )
-def test_incoming_events_round_trip_through_kafka_bytes(event):
-    key, value = event.to_kafka()
+def test_incoming_events_round_trip_through_json(event):
+    value = event.model_dump_json().encode()
 
-    assert key == event.order_id.encode()
     assert json.loads(value)["type"] == type(event).__name__
     assert type(event).model_validate_json(value) == event
 

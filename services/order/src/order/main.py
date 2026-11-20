@@ -1,11 +1,12 @@
 import asyncio
-from contextlib import asynccontextmanager, suppress
+from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
 from tortoise.contrib.fastapi import RegisterTortoise
 
 from order.api import cancel_order, get_order, health, list_orders, place_order
+from order.consuming import run_consumer
 from order.db import TORTOISE_ORM
 from order.exceptions import register_exception_handlers
 from order.publishing import run_relay
@@ -14,13 +15,13 @@ from order.publishing import run_relay
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with RegisterTortoise(app, config=TORTOISE_ORM):
-        relay = asyncio.create_task(run_relay())
+        tasks = [asyncio.create_task(run_relay()), asyncio.create_task(run_consumer())]
         try:
             yield
         finally:
-            relay.cancel()
-            with suppress(asyncio.CancelledError):
-                await relay
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
 
 
 app = FastAPI(title="order", lifespan=lifespan)

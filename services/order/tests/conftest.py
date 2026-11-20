@@ -65,7 +65,9 @@ async def db():
 @pytest.fixture(autouse=True)
 async def clean_tables():
     conn = Tortoise.get_connection("default")
-    await conn.execute_script("TRUNCATE orders, order_items, idempotency_keys, events CASCADE")
+    await conn.execute_script(
+        "TRUNCATE orders, order_items, idempotency_keys, events, processed_events CASCADE"
+    )
 
 
 class FakeProducer:

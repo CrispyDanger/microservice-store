@@ -19,7 +19,7 @@ from order.models import ProcessedEvent
         PaymentFailed(order_id=str(uuid4()), reason="card declined"),
     ],
 )
-def test_saga_events_round_trip_through_kafka_bytes(event):
+def test_incoming_events_round_trip_through_kafka_bytes(event):
     key, value = event.to_kafka()
 
     assert key == event.order_id.encode()

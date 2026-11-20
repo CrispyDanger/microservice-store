@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from tortoise.contrib.fastapi import RegisterTortoise
 
 from order.api import cancel_order, get_order, health, list_orders, place_order
+from order.cleaning import run_cleanup
 from order.consuming import run_consumer
 from order.db import TORTOISE_ORM
 from order.exceptions import register_exception_handlers
@@ -20,6 +21,7 @@ async def lifespan(app: FastAPI):
             asyncio.create_task(run_relay()),
             asyncio.create_task(run_consumer()),
             asyncio.create_task(run_expiry()),
+            asyncio.create_task(run_cleanup()),
         ]
         try:
             yield

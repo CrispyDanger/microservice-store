@@ -7,7 +7,7 @@ class IdempotencyKey(models.Model):
     key = fields.UUIDField()
     request_hash = fields.CharField(max_length=64)
     order = fields.ForeignKeyField("order.Order", related_name=None, on_delete=fields.CASCADE)
-    created_at = fields.DatetimeField(auto_now_add=True)
+    created_at = fields.DatetimeField(auto_now_add=True, db_index=True)
 
     class Meta:
         table = "idempotency_keys"

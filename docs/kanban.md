@@ -6,11 +6,6 @@ Last updated: 2026-11-20
 
 ### Order service
 
-- [ ] **Cleanup of old rows.** Runs in the `expiring.py` loop.
-  - Delete published `events` rows older than 7 days.
-  - Delete `processed_events` rows older than 14 days. This must stay longer than Kafka's retention (7 days by default), or a redelivered event slips past the duplicate check.
-  - Delete `idempotency_keys` rows older than 24 hours.
-  - Tests for each table: old rows go, recent rows stay, unpublished `events` rows are never deleted.
 - [ ] **Logging setup.** The app configures no logging, so info lines such as "Cancelled N orders stuck in pending" never reach `docker compose logs`. Configure the root logger at startup, with the level from a setting.
 - [ ] **Relay lag check.** Expose the age of the oldest unpublished `events` row, for example in `/health` or as a metric, so a stuck relay gets noticed.
 
@@ -65,3 +60,4 @@ Last updated: 2026-11-20
 - [x] Saga handlers in `services/finalize_order.py` with `processed_events` duplicate check.
 - [x] Kafka consumer in `consuming.py` for the `inventory` and `payments` topics.
 - [x] Saga timeout: `PENDING` orders older than 15 minutes are cancelled (`expiring.py`).
+- [x] Hourly cleanup (`cleaning.py`): published `events` after 7 days, `processed_events` after 14 days (longer than Kafka's 7-day retention), `idempotency_keys` after 24 hours.

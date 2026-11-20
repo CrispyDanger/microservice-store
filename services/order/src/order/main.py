@@ -11,11 +11,13 @@ from order.consuming import run_consumer
 from order.db import TORTOISE_ORM
 from order.exceptions import register_exception_handlers
 from order.expiring import run_expiry
+from order.logs import configure_logging
 from order.publishing import run_relay
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    configure_logging()
     async with RegisterTortoise(app, config=TORTOISE_ORM):
         tasks = [
             asyncio.create_task(run_relay()),

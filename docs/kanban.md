@@ -6,7 +6,6 @@ Last updated: 2026-11-20
 
 ### Order service
 
-- [ ] **Logging setup.** The app configures no logging, so info lines such as "Cancelled N orders stuck in pending" never reach `docker compose logs`. Configure the root logger at startup, with the level from a setting.
 - [ ] **Relay lag check.** Expose the age of the oldest unpublished `events` row, for example in `/health` or as a metric, so a stuck relay gets noticed.
 
 ## Backlog
@@ -61,3 +60,4 @@ Last updated: 2026-11-20
 - [x] Kafka consumer in `consuming.py` for the `inventory` and `payments` topics.
 - [x] Saga timeout: `PENDING` orders older than 15 minutes are cancelled (`expiring.py`).
 - [x] Hourly cleanup (`cleaning.py`): published `events` after 7 days, `processed_events` after 14 days (longer than Kafka's 7-day retention), `idempotency_keys` after 24 hours.
+- [x] Logging setup (`logs.py`): root logger configured at startup, level from `ORDER_LOG_LEVEL` (default `INFO`).

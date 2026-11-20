@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -8,6 +10,7 @@ class Settings(BaseSettings):
     database_url: str
     jwt_public_key_path: str
     pending_timeout_minutes: int = Field(default=15, gt=0)
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     kafka_bootstrap_servers: str = Field(
         default="localhost:9092", validation_alias="KAFKA_BOOTSTRAP_SERVERS"
     )

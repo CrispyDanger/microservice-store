@@ -9,13 +9,18 @@ from order.api import cancel_order, get_order, health, list_orders, place_order
 from order.consuming import run_consumer
 from order.db import TORTOISE_ORM
 from order.exceptions import register_exception_handlers
+from order.expiring import run_expiry
 from order.publishing import run_relay
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     async with RegisterTortoise(app, config=TORTOISE_ORM):
-        tasks = [asyncio.create_task(run_relay()), asyncio.create_task(run_consumer())]
+        tasks = [
+            asyncio.create_task(run_relay()),
+            asyncio.create_task(run_consumer()),
+            asyncio.create_task(run_expiry()),
+        ]
         try:
             yield
         finally:

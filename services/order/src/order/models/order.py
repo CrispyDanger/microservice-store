@@ -26,7 +26,7 @@ class Order(models.Model):
     class Meta:
         table = "orders"
         ordering = ["-created_at"]
-        indexes = (("user_id", "created_at", "id"),)
+        indexes = (("user_id", "created_at", "id"), ("status", "created_at"))
 
 
 class OrderItem(models.Model):

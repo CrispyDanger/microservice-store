@@ -66,7 +66,10 @@ async def db():
 @pytest.fixture(autouse=True)
 async def clean_tables():
     conn = Tortoise.get_connection("default")
-    await conn.execute_script("TRUNCATE products CASCADE")
+    await conn.execute_script(
+        "TRUNCATE products, stock_reservations, stock_reservation_items, events, processed_events"
+        " CASCADE"
+    )
 
 
 @pytest.fixture

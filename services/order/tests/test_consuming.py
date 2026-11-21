@@ -38,7 +38,8 @@ async def test_a_message_reaches_its_handler(order, make_event, expected_status)
 
 
 async def test_stock_reserved_is_ignored(order):
-    await handle_message(as_kafka_value(StockReserved(order_id=order.id)))
+    event = StockReserved(order_id=order.id, items=[], total=order.total)
+    await handle_message(as_kafka_value(event))
 
     await order.refresh_from_db()
     assert order.status == OrderStatus.PENDING

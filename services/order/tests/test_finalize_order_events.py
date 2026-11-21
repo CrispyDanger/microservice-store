@@ -5,7 +5,7 @@ from uuid import uuid4
 import pytest
 from tortoise.exceptions import IntegrityError
 
-from events.inventory import StockRejected, StockReserved
+from events.inventory import ReservedItem, StockRejected, StockReserved
 from events.payments import PaymentFailed, PaymentSucceeded
 from order.models import ProcessedEvent
 
@@ -13,7 +13,11 @@ from order.models import ProcessedEvent
 @pytest.mark.parametrize(
     "event",
     [
-        StockReserved(order_id=uuid4()),
+        StockReserved(
+            order_id=uuid4(),
+            items=[ReservedItem(product_id=uuid4(), quantity=3, unit_price=Decimal("9.99"))],
+            total=Decimal("29.97"),
+        ),
         StockRejected(order_id=uuid4(), reason="out of stock"),
         PaymentSucceeded(order_id=uuid4(), payment_id=uuid4(), amount=Decimal("29.97")),
         PaymentFailed(order_id=uuid4(), reason="card declined"),

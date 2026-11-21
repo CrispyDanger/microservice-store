@@ -15,20 +15,19 @@ Last updated: 2026-11-20
 - [x] Persistence and Docker, same layout as the order service (port 8002).
 - [x] `Product` model: id, name, price, stock (one column: quantity available to reserve).
 - [x] Product API: public list and get; admin-only create and restock.
-- [ ] `StockReservation` (order_id, status, total, reject_reason) and `StockReservationItem` (product_id, quantity, unit_price).
-- [ ] Consume `OrderCreated`: lock the product rows sorted by id, reserve every item or none, compute the total from product prices.
-- [ ] Record `StockReserved(total, item prices)` or `StockRejected(reason)` through an outbox (copy of the order service's `publishing.py`).
-- [ ] Consume `OrderCancelled`: return the stock of a `reserved` reservation and mark it `released`.
-- [ ] `processed_events` duplicate check in the same transaction as each handler.
+- [x] `StockReservation` (order_id, status, total, reject_reason) and `StockReservationItem` (product_id, quantity, unit_price).
+- [x] Consume `OrderCreated`: lock the product rows sorted by id, reserve every item or none, compute the total from product prices.
+- [x] Record `StockReserved(total, item prices)` or `StockRejected(reason)` through an outbox (copy of the order service's `publishing.py`).
+- [x] Consume `OrderCancelled`: return the stock of a `reserved` reservation and mark it `released`.
+- [x] `processed_events` duplicate check in the same transaction as each handler.
 - [ ] Consumer and relay loops in `lifespan`, plus hourly cleanup.
-- [ ] Tests, including two orders racing for the last unit of stock.
+- [x] Tests, including two orders racing for the last unit of stock.
 - [ ] Order service follow-up: drop `total` from `POST /orders` and `OrderCreated`; save the total and unit prices from `StockReserved`.
 
 ### Payment service
 
 - [ ] Persistence and Docker.
-- [ ] Consume `OrderCreated`: store a pending payment with the order's amount.
-- [ ] Consume `StockReserved`: charge through a fake gateway, then record `PaymentSucceeded` or `PaymentFailed`.
+- [ ] Consume `StockReserved`: charge its `total` through a fake gateway, then record `PaymentSucceeded` or `PaymentFailed`.
 - [ ] Consume `OrderCancelled`: refund if the payment already succeeded. Covers a user cancel or a timeout that lands after the charge.
 - [ ] Outbox and `processed_events`, same as order.
 

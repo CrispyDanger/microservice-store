@@ -14,7 +14,7 @@ Last updated: 2026-11-20
 
 - [x] Persistence and Docker, same layout as the order service (port 8002).
 - [x] `Product` model: id, name, price, stock (one column: quantity available to reserve).
-- [ ] Product API: list and get products; admin-only create and restock.
+- [x] Product API: public list and get; admin-only create and restock.
 - [ ] `StockReservation` (order_id, status, total, reject_reason) and `StockReservationItem` (product_id, quantity, unit_price).
 - [ ] Consume `OrderCreated`: lock the product rows sorted by id, reserve every item or none, compute the total from product prices.
 - [ ] Record `StockReserved(total, item prices)` or `StockRejected(reason)` through an outbox (copy of the order service's `publishing.py`).

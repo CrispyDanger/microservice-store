@@ -7,6 +7,11 @@ class InventoryServiceError(Exception):
     detail = "Bad request"
 
 
+class ProductNotFound(InventoryServiceError):
+    status_code = 404
+    detail = "Product not found"
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(InventoryServiceError)
     async def _handle(request: Request, exc: InventoryServiceError) -> JSONResponse:

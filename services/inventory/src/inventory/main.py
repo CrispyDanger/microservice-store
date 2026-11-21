@@ -4,7 +4,7 @@ import uvicorn
 from fastapi import FastAPI
 from tortoise.contrib.fastapi import RegisterTortoise
 
-from inventory.api import health
+from inventory.api import create_product, get_product, health, list_products, restock_product
 from inventory.db import TORTOISE_ORM
 from inventory.exceptions import register_exception_handlers
 from inventory.logs import configure_logging
@@ -20,6 +20,10 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="inventory", lifespan=lifespan)
 
 app.include_router(health.router)
+app.include_router(list_products.router)
+app.include_router(get_product.router)
+app.include_router(create_product.router)
+app.include_router(restock_product.router)
 
 register_exception_handlers(app)
 

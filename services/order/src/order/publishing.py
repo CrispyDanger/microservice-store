@@ -1,7 +1,7 @@
 import asyncio
 import json
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from aiokafka import AIOKafkaProducer
 from tortoise.transactions import in_transaction
@@ -43,6 +43,13 @@ async def publish_batch(producer: AIOKafkaProducer) -> int:
                 published_at=datetime.now(UTC)
             )
     return len(events)
+
+
+async def oldest_unpublished_age() -> timedelta:
+    event = await Event.filter(published_at=None).order_by("created_at").first()
+    if event is None:
+        return timedelta(0)
+    return datetime.now(UTC) - event.created_at
 
 
 async def run_relay() -> None:

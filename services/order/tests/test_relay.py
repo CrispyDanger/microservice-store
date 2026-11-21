@@ -44,7 +44,6 @@ async def test_publish_batch_sends_a_placed_order_as_order_created(
     assert event["type"] == "OrderCreated"
     assert event["order_id"] == order_id
     assert event["items"] == order_payload["items"]
-    assert event["total"] == "29.97"
 
 
 async def test_publish_batch_sends_oldest_first_and_marks_events_published(producer):

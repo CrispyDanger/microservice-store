@@ -14,7 +14,7 @@ class Order(models.Model):
     id = fields.UUIDField(primary_key=True)
     user_id = fields.UUIDField()
     status = fields.CharEnumField(OrderStatus, default=OrderStatus.PENDING)
-    total = fields.DecimalField(max_digits=12, decimal_places=2)
+    total = fields.DecimalField(max_digits=12, decimal_places=2, null=True)
     cancel_reason = fields.CharField(max_length=255, null=True)
     created_at = fields.DatetimeField(auto_now_add=True)
     updated_at = fields.DatetimeField(auto_now=True)
@@ -38,6 +38,7 @@ class OrderItem(models.Model):
     )
     product_id = fields.UUIDField()
     quantity = fields.IntField(validators=[MinValueValidator(1)])
+    unit_price = fields.DecimalField(max_digits=12, decimal_places=2, null=True)
 
     class Meta:
         table = "order_items"

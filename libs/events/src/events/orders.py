@@ -1,4 +1,3 @@
-from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 
@@ -18,7 +17,6 @@ class OrderCreated(Event):
     type: Literal["OrderCreated"] = "OrderCreated"
     user_id: UUID
     items: list[OrderItem]
-    total: Decimal
 
 
 class OrderConfirmed(Event):

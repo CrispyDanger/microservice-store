@@ -2,7 +2,13 @@ from decimal import Decimal
 from uuid import UUID, uuid4
 
 from events.orders import OrderCancelled, OrderCreated, OrderItem
-from inventory.models import Event, ProcessedEvent, Product, StockReservation, StockReservationStatus
+from inventory.models import (
+    Event,
+    ProcessedEvent,
+    Product,
+    StockReservation,
+    StockReservationStatus,
+)
 from inventory.services.release_stock import release_stock
 from inventory.services.reserve_stock import reserve_stock
 
@@ -16,7 +22,6 @@ async def reserve(*lines: tuple[Product, int]) -> UUID:
         order_id=uuid4(),
         user_id=uuid4(),
         items=[OrderItem(product_id=product.id, quantity=quantity) for product, quantity in lines],
-        total=Decimal("1.00"),
     )
     await reserve_stock(event)
     return event.order_id

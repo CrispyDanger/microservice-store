@@ -4,13 +4,14 @@ import logging
 
 from aiokafka import AIOKafkaConsumer
 
-from events.inventory import INVENTORY_TOPIC, StockRejected
+from events.inventory import INVENTORY_TOPIC, StockRejected, StockReserved
 from events.payments import PAYMENTS_TOPIC, PaymentFailed, PaymentSucceeded
 from order.config import settings
 from order.services.finalize_order import (
     handle_payment_failed,
     handle_payment_succeeded,
     handle_stock_rejected,
+    handle_stock_reserved,
 )
 
 logger = logging.getLogger(__name__)
@@ -23,6 +24,7 @@ ROUTES = {
     "PaymentSucceeded": (PaymentSucceeded, handle_payment_succeeded),
     "PaymentFailed": (PaymentFailed, handle_payment_failed),
     "StockRejected": (StockRejected, handle_stock_rejected),
+    "StockReserved": (StockReserved, handle_stock_reserved),
 }
 
 

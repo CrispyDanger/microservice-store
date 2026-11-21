@@ -10,7 +10,6 @@ from order.models import OrderStatus
 
 class PlaceOrderInput(BaseModel):
     items: list[OrderItemInput] = Field(min_length=1)
-    total: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
 
     @field_validator("items")
     @classmethod
@@ -29,6 +28,7 @@ class OrderItemOutput(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     product_id: UUID
     quantity: int
+    unit_price: Decimal | None
 
 
 class OrderOutput(BaseModel):
@@ -36,7 +36,7 @@ class OrderOutput(BaseModel):
     id: UUID
     user_id: UUID
     status: OrderStatus
-    total: Decimal
+    total: Decimal | None
     cancel_reason: str | None
     items: list[OrderItemOutput]
     created_at: datetime

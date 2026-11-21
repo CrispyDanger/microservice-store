@@ -3,10 +3,10 @@ from uuid import uuid4
 
 import pytest
 
-from events.inventory import StockRejected, StockReserved
+from events.inventory import ReservedItem, StockRejected, StockReserved
 from events.payments import PaymentFailed, PaymentSucceeded
 from order.consuming import handle_message
-from order.models import Event, Order, OrderStatus, ProcessedEvent
+from order.models import Event, Order, OrderItem, OrderStatus, ProcessedEvent
 
 
 @pytest.fixture
@@ -37,13 +37,20 @@ async def test_a_message_reaches_its_handler(order, make_event, expected_status)
     assert await Event.all().count() == 1
 
 
-async def test_stock_reserved_is_ignored(order):
-    event = StockReserved(order_id=order.id, items=[], total=order.total)
+async def test_stock_reserved_saves_the_total():
+    order = await Order.create(user_id=uuid4())
+    item = await OrderItem.create(order=order, product_id=uuid4(), quantity=2)
+    event = StockReserved(
+        order_id=order.id,
+        items=[ReservedItem(product_id=item.product_id, quantity=2, unit_price=Decimal("9.99"))],
+        total=Decimal("19.98"),
+    )
+
     await handle_message(as_kafka_value(event))
 
     await order.refresh_from_db()
+    assert order.total == Decimal("19.98")
     assert order.status == OrderStatus.PENDING
-    assert await ProcessedEvent.all().count() == 0
 
 
 @pytest.mark.parametrize(

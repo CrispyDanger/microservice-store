@@ -26,7 +26,6 @@ def order_created(*lines: tuple[Product, int]) -> OrderCreated:
         order_id=uuid4(),
         user_id=uuid4(),
         items=[OrderItem(product_id=product.id, quantity=quantity) for product, quantity in lines],
-        total=Decimal("1.00"),
     )
 
 
@@ -73,15 +72,6 @@ async def test_records_stock_reserved_with_prices_and_total(mug):
     assert outbox.payload["items"] == [
         {"product_id": str(mug.id), "quantity": 2, "unit_price": "9.99"}
     ]
-
-
-async def test_the_client_total_is_ignored(mug):
-    event = order_created((mug, 1))
-
-    await reserve_stock(event)
-
-    reservation = await StockReservation.get(order_id=event.order_id)
-    assert reservation.total == Decimal("9.99")
 
 
 async def test_taking_the_last_units_leaves_zero(teapot):

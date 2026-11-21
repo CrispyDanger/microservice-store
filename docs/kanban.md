@@ -20,9 +20,9 @@ Last updated: 2026-11-20
 - [x] Record `StockReserved(total, item prices)` or `StockRejected(reason)` through an outbox (copy of the order service's `publishing.py`).
 - [x] Consume `OrderCancelled`: return the stock of a `reserved` reservation and mark it `released`.
 - [x] `processed_events` duplicate check in the same transaction as each handler.
-- [ ] Consumer and relay loops in `lifespan`, plus hourly cleanup.
+- [x] Consumer (`orders` topic, group `inventory`), relay and hourly cleanup in `lifespan`; `/health/relay`.
 - [x] Tests, including two orders racing for the last unit of stock.
-- [ ] Order service follow-up: drop `total` from `POST /orders` and `OrderCreated`; save the total and unit prices from `StockReserved`.
+- [x] Order service follow-up: drop `total` from `POST /orders` and `OrderCreated`; save the total and unit prices from `StockReserved`.
 
 ### Payment service
 

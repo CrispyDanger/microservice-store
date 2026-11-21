@@ -5,10 +5,8 @@ from tests.conftest import with_new_key
 
 @pytest.fixture
 def place(client, order_payload):
-    async def _place(headers: dict, total: str = "29.97") -> dict:
-        resp = await client.post(
-            "/orders", json={**order_payload, "total": total}, headers=with_new_key(headers)
-        )
+    async def _place(headers: dict) -> dict:
+        resp = await client.post("/orders", json=order_payload, headers=with_new_key(headers))
         assert resp.status_code == 201
         return resp.json()
 
@@ -42,9 +40,9 @@ async def test_list_orders_returns_only_the_users_own_orders(
 
 
 async def test_list_orders_returns_newest_first(client, auth_headers, place):
-    first = await place(auth_headers, total="1.00")
-    second = await place(auth_headers, total="2.00")
-    third = await place(auth_headers, total="3.00")
+    first = await place(auth_headers)
+    second = await place(auth_headers)
+    third = await place(auth_headers)
 
     resp = await client.get("/orders", headers=auth_headers)
 
@@ -52,7 +50,7 @@ async def test_list_orders_returns_newest_first(client, auth_headers, place):
 
 
 async def test_list_orders_pages_with_limit_and_offset(client, auth_headers, place):
-    placed = [await place(auth_headers, total=f"{n}.00") for n in range(1, 6)]
+    placed = [await place(auth_headers) for _ in range(5)]
     newest_first = [o["id"] for o in reversed(placed)]
 
     resp = await client.get("/orders", params={"limit": 2, "offset": 2}, headers=auth_headers)

@@ -132,5 +132,4 @@ def order_payload() -> dict:
             {"product_id": str(uuid4()), "quantity": 2},
             {"product_id": str(uuid4()), "quantity": 1},
         ],
-        "total": "29.97",
     }

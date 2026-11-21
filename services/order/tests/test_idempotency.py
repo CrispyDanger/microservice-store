@@ -60,7 +60,9 @@ async def test_same_key_with_a_different_body_is_rejected(
     await client.post("/orders", json=order_payload, headers=key_headers)
 
     resp = await client.post(
-        "/orders", json={**order_payload, "total": "1.00"}, headers=key_headers
+        "/orders",
+        json={"items": [{**order_payload["items"][0], "quantity": 9}]},
+        headers=key_headers,
     )
 
     assert resp.status_code == 422

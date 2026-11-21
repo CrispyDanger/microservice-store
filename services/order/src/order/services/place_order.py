@@ -1,6 +1,5 @@
 import hashlib
 import json
-from decimal import Decimal
 from uuid import UUID
 
 from tortoise.exceptions import IntegrityError
@@ -19,7 +18,6 @@ def hash_request(data: PlaceOrderInput) -> str:
             ({"product_id": str(i.product_id), "quantity": i.quantity} for i in data.items),
             key=lambda i: i["product_id"],
         ),
-        "total": str(data.total.quantize(Decimal("0.01"))),
     }
     return hashlib.sha256(json.dumps(canonical, sort_keys=True).encode()).hexdigest()
 
@@ -38,7 +36,7 @@ async def place_order(data: PlaceOrderInput, user_id: UUID, idempotency_key: UUI
     request_hash = hash_request(data)
     try:
         async with in_transaction():
-            order = await Order.create(user_id=user_id, total=data.total)
+            order = await Order.create(user_id=user_id)
             items = [
                 OrderItem(order=order, product_id=item.product_id, quantity=item.quantity)
                 for item in data.items
@@ -47,9 +45,7 @@ async def place_order(data: PlaceOrderInput, user_id: UUID, idempotency_key: UUI
             await IdempotencyKey.create(
                 user_id=user_id, key=idempotency_key, request_hash=request_hash, order=order
             )
-            event = OrderCreated(
-                order_id=order.id, user_id=user_id, items=data.items, total=order.total
-            )
+            event = OrderCreated(order_id=order.id, user_id=user_id, items=data.items)
             await record_event(ORDERS_TOPIC, event)
     except IntegrityError:
         idemp_order = await _check_idempotency(user_id, idempotency_key, request_hash)

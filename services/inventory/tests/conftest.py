@@ -72,6 +72,19 @@ async def clean_tables():
     )
 
 
+class FakeProducer:
+    def __init__(self) -> None:
+        self.sent: list[tuple[str, bytes, bytes]] = []
+
+    async def send_and_wait(self, topic: str, key: bytes, value: bytes) -> None:
+        self.sent.append((topic, key, value))
+
+
+@pytest.fixture
+def producer() -> FakeProducer:
+    return FakeProducer()
+
+
 @pytest.fixture
 async def client():
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:

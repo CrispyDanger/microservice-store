@@ -1,5 +1,4 @@
 from datetime import timedelta
-from decimal import Decimal
 from uuid import UUID
 
 import pytest
@@ -44,9 +43,12 @@ async def test_place_order_returns_the_pending_order(client, auth_headers, user_
     body = resp.json()
     assert body["user_id"] == str(user_id)
     assert body["status"] == "pending"
-    assert body["total"] == "29.97"
+    assert body["total"] is None
     assert body["cancel_reason"] is None
-    assert body["items"] == sorted(order_payload["items"], key=lambda i: i["product_id"])
+    assert body["items"] == sorted(
+        ({**item, "unit_price": None} for item in order_payload["items"]),
+        key=lambda i: i["product_id"],
+    )
     UUID(body["id"])
 
 
@@ -58,7 +60,7 @@ async def test_place_order_saves_the_order_and_its_items(
     order = await Order.get(id=resp.json()["id"])
     assert order.user_id == user_id
     assert order.status == OrderStatus.PENDING
-    assert order.total == Decimal("29.97")
+    assert order.total is None
     items = await OrderItem.filter(order=order).order_by("quantity")
     assert [(str(i.product_id), i.quantity) for i in items] == [
         (order_payload["items"][1]["product_id"], 1),
@@ -82,7 +84,7 @@ async def test_place_order_records_order_created(
     assert event["order_id"] == order_id
     assert event["user_id"] == str(user_id)
     assert event["items"] == order_payload["items"]
-    assert event["total"] == "29.97"
+    assert "total" not in event
 
 
 async def test_place_order_rejects_the_same_product_twice(client, auth_headers, order_payload):
@@ -107,9 +109,6 @@ async def test_place_order_rejects_the_same_product_twice(client, auth_headers, 
         {"items": []},
         {"items": [{"product_id": "00000000-0000-4000-8000-000000000001", "quantity": 0}]},
         {"items": [{"product_id": "not-a-uuid", "quantity": 1}]},
-        {"total": "0"},
-        {"total": "-5"},
-        {"total": "1.999"},
     ],
 )
 async def test_place_order_rejects_invalid_input(client, auth_headers, order_payload, change):

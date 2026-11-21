@@ -48,6 +48,24 @@ x-order: &order
   depends_on:
     order-db: { condition: service_healthy }
 
+x-inventory: &inventory
+  build:
+    context: .
+    dockerfile: Dockerfile
+    args: { SERVICE: inventory, DEV: "true" }
+  env_file: .env # INVENTORY_* values: DB at inventory-db:5432, public key at /keys/public.pem
+  environment:
+    KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+    WATCHFILES_FORCE_POLLING: "true"
+  volumes:
+    - ./services/user/keys/public.pem:/keys/public.pem:ro
+    - ./services/inventory/src:/app/services/inventory/src
+    - ./services/inventory/tests:/app/services/inventory/tests
+    - ./libs/auth/src:/app/libs/auth/src
+    - ./libs/events/src:/app/libs/events/src
+  depends_on:
+    inventory-db: { condition: service_healthy }
+
 x-postgres: &postgres
   image: postgres:18
   healthcheck:
@@ -136,6 +154,32 @@ services:
       order-db: { condition: service_healthy }
       order-migrate: { condition: service_completed_successfully }
 
+  #########################################################
+  # Inventory Service
+  #########################################################
+  inventory-db:
+    <<: *postgres
+    environment:
+      POSTGRES_USER: inventory
+      POSTGRES_PASSWORD: inventory
+      POSTGRES_DB: inventory
+    ports: ["5435:5432"]
+    volumes: [inventory-db-data:/var/lib/postgresql]
+
+  inventory-migrate:
+    <<: *inventory
+    command: ["tortoise", "-c", "inventory.db.TORTOISE_ORM", "migrate"]
+
+  inventory:
+    <<: *inventory
+    command: ["uvicorn", "inventory.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    ports:
+      - "8002:8000"
+    depends_on:
+      kafka-init: { condition: service_completed_successfully }
+      inventory-db: { condition: service_healthy }
+      inventory-migrate: { condition: service_completed_successfully }
+
   notifications:
     <<: *app
     build:
@@ -174,12 +218,10 @@ services:
       user-migrate:
         condition: service_completed_successfully
 
-  # Add inventory / payment / user the same way once they do something:
-  # inventory:
-  #   <<: *app
-  #   build: { <<: *app-build, args: { SERVICE: inventory } }
+  # Add payment the same way once it does something
 
 volumes:
   kafka-data:
   user-db-data:
   order-db-data:
+  inventory-db-data:

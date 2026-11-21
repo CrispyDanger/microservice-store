@@ -811,13 +811,35 @@ version = "0.1.0"
 source = { editable = "services/inventory" }
 dependencies = [
     { name = "aiokafka" },
+    { name = "auth" },
     { name = "events" },
+    { name = "fastapi", extra = ["standard"] },
+    { name = "pydantic-settings" },
+    { name = "tortoise-orm", extra = ["asyncpg"] },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "httpx" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "aiokafka", specifier = ">=0.15.0" },
+    { name = "auth", editable = "libs/auth" },
     { name = "events", editable = "libs/events" },
+    { name = "fastapi", extras = ["standard"], specifier = ">=0.162.0" },
+    { name = "pydantic-settings", specifier = ">=2.16.2" },
+    { name = "tortoise-orm", extras = ["asyncpg"], specifier = ">=1.1.9" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "pytest", specifier = ">=9.2.0" },
+    { name = "pytest-asyncio", specifier = ">=1.4.1.post1" },
 ]
 
 [[package]]

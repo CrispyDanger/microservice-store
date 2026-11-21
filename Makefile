@@ -1,7 +1,7 @@
 export MSYS_NO_PATHCONV := 1
 
 DC := docker compose
-DB_SERVICES := user order
+DB_SERVICES := user order inventory
 s ?=
 topic ?= orders
 args ?=
@@ -51,6 +51,7 @@ test-auth: ## Run libs/auth tests (inside the user container)
 test-all: ## Run every test suite
 	$(MAKE) test s=user
 	$(MAKE) test s=order
+	$(MAKE) test s=inventory
 	$(MAKE) test-auth
 
 makemigrations: ## Generate a migration from model changes: s=order

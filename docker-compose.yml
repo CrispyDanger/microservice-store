@@ -66,6 +66,22 @@ x-inventory: &inventory
   depends_on:
     inventory-db: { condition: service_healthy }
 
+x-payment: &payment
+  build:
+    context: .
+    dockerfile: Dockerfile
+    args: { SERVICE: payment, DEV: "true" }
+  env_file: .env # PAYMENT_* values: DB at payment-db:5432
+  environment:
+    KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+    WATCHFILES_FORCE_POLLING: "true"
+  volumes:
+    - ./services/payment/src:/app/services/payment/src
+    - ./services/payment/tests:/app/services/payment/tests
+    - ./libs/events/src:/app/libs/events/src
+  depends_on:
+    payment-db: { condition: service_healthy }
+
 x-postgres: &postgres
   image: postgres:18
   healthcheck:
@@ -180,6 +196,32 @@ services:
       inventory-db: { condition: service_healthy }
       inventory-migrate: { condition: service_completed_successfully }
 
+  #########################################################
+  # Payment Service
+  #########################################################
+  payment-db:
+    <<: *postgres
+    environment:
+      POSTGRES_USER: payment
+      POSTGRES_PASSWORD: payment
+      POSTGRES_DB: payment
+    ports: ["5436:5432"]
+    volumes: [payment-db-data:/var/lib/postgresql]
+
+  payment-migrate:
+    <<: *payment
+    command: ["tortoise", "-c", "payment.db.TORTOISE_ORM", "migrate"]
+
+  payment:
+    <<: *payment
+    command: ["uvicorn", "payment.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    ports:
+      - "8003:8000"
+    depends_on:
+      kafka-init: { condition: service_completed_successfully }
+      payment-db: { condition: service_healthy }
+      payment-migrate: { condition: service_completed_successfully }
+
   notifications:
     <<: *app
     build:
@@ -218,10 +260,9 @@ services:
       user-migrate:
         condition: service_completed_successfully
 
-  # Add payment the same way once it does something
-
 volumes:
   kafka-data:
   user-db-data:
   order-db-data:
   inventory-db-data:
+  payment-db-data:

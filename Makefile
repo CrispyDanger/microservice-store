@@ -1,7 +1,7 @@
 export MSYS_NO_PATHCONV := 1
 
 DC := docker compose
-DB_SERVICES := user order inventory
+DB_SERVICES := user order inventory payment
 s ?=
 topic ?= orders
 args ?=
@@ -52,6 +52,7 @@ test-all: ## Run every test suite
 	$(MAKE) test s=user
 	$(MAKE) test s=order
 	$(MAKE) test s=inventory
+	$(MAKE) test s=payment
 	$(MAKE) test-auth
 
 makemigrations: ## Generate a migration from model changes: s=order

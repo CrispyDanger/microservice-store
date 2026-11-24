@@ -1,6 +1,6 @@
 # Kanban
 
-Last updated: 2026-11-20
+Last updated: 2026-11-24
 
 ## To do
 
@@ -26,7 +26,8 @@ Last updated: 2026-11-20
 
 ### Payment service
 
-- [ ] Persistence and Docker.
+- [x] Persistence and Docker, same layout as inventory (port 8003, DB on 5436). No JWT: payment has no user-facing API yet.
+- [x] `Payment` model: id, order_id (unique), amount, status (`pending`/`succeeded`/`failed`/`refunded`), failure_reason.
 - [ ] Consume `StockReserved`: charge its `total` through a fake gateway, then record `PaymentSucceeded` or `PaymentFailed`.
 - [ ] Consume `OrderCancelled`: refund if the payment already succeeded. Covers a user cancel or a timeout that lands after the charge.
 - [ ] Outbox and `processed_events`, same as order.

@@ -5,8 +5,10 @@ import logging
 from aiokafka import AIOKafkaConsumer
 
 from events.inventory import INVENTORY_TOPIC, StockReserved
+from events.orders import ORDERS_TOPIC, OrderCancelled
 from payment.config import settings
 from payment.services.charge_payment import charge_payment
+from payment.services.refund_payment import refund_payment
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +18,7 @@ MAX_BACKOFF = 30.0
 
 ROUTES = {
     "StockReserved": (StockReserved, charge_payment),
+    "OrderCancelled": (OrderCancelled, refund_payment),
 }
 
 
@@ -39,6 +42,7 @@ async def run_consumer() -> None:
     while True:
         consumer = AIOKafkaConsumer(
             INVENTORY_TOPIC,
+            ORDERS_TOPIC,
             bootstrap_servers=settings.kafka_bootstrap_servers,
             group_id=GROUP_ID,
             enable_auto_commit=False,

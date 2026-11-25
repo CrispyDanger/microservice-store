@@ -4,8 +4,9 @@ from uuid import uuid4
 import pytest
 
 from events.inventory import ReservedItem, StockRejected, StockReserved
+from events.orders import OrderCancelled
 from payment.consuming import handle_message
-from payment.models import Payment, PaymentStatus, ProcessedEvent
+from payment.models import CancelledOrder, Payment, PaymentStatus, ProcessedEvent
 
 
 def as_kafka_value(event) -> bytes:
@@ -22,6 +23,14 @@ async def test_stock_reserved_charges_the_order():
     await handle_message(as_kafka_value(event))
 
     assert (await Payment.get(order_id=event.order_id)).status == PaymentStatus.SUCCEEDED
+
+
+async def test_order_cancelled_is_remembered():
+    event = OrderCancelled(order_id=uuid4(), reason="cancelled by user")
+
+    await handle_message(as_kafka_value(event))
+
+    assert await CancelledOrder.exists(order_id=event.order_id)
 
 
 async def test_stock_rejected_is_ignored():

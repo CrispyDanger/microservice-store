@@ -1,6 +1,6 @@
 # Kanban
 
-Last updated: 2026-11-24
+Last updated: 2026-11-25
 
 ## To do
 
@@ -30,7 +30,8 @@ Last updated: 2026-11-24
 - [x] `Payment` model: id, order_id (unique), amount, status (`succeeded`/`failed`/`refunded`), failure_reason.
 - [x] Consume `StockReserved`: charge its `total` through a fake gateway (`gateway.py`, declines amounts over `PAYMENT_DECLINE_OVER`, default 1000), then record `PaymentSucceeded` or `PaymentFailed`. One payment per order.
 - [x] Outbox and `processed_events`, copied from inventory; consumer (`inventory` topic, group `payment`), relay and hourly cleanup in `lifespan`; `/health/relay`.
-- [ ] Consume `OrderCancelled`: refund if the payment already succeeded. Covers a user cancel or a timeout that lands after the charge. `OrderCancelled` (orders topic) can arrive before `StockReserved` (inventory topic), so a cancel with no payment yet must be remembered and the later `StockReserved` skipped, or the order gets charged after it was cancelled.
+- [x] Consume `OrderCancelled`: refund if the payment already succeeded. Covers a user cancel or a timeout that lands after the charge. `OrderCancelled` (orders topic) can arrive before `StockReserved` (inventory topic), so a cancel with no payment yet must be remembered and the later `StockReserved` skipped, or the order gets charged after it was cancelled.
+  Done with a `cancelled_orders` table (kept 14 days) and a per-order advisory lock shared with `charge_payment`.
 
 ### Notifications service
 

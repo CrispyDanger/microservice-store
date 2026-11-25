@@ -14,11 +14,15 @@ class FakeGateway:
     def __init__(self, decline_over: Decimal) -> None:
         self.decline_over = decline_over
         self.charges: dict[UUID, Decimal] = {}
+        self.refunds: dict[UUID, Decimal] = {}
 
     async def charge(self, idempotency_key: UUID, amount: Decimal) -> None:
         if amount > self.decline_over:
             raise PaymentDeclined(f"amount {amount} is over the limit of {self.decline_over}")
         self.charges.setdefault(idempotency_key, amount)
+
+    async def refund(self, idempotency_key: UUID, amount: Decimal) -> None:
+        self.refunds.setdefault(idempotency_key, amount)
 
 
 gateway = FakeGateway(decline_over=settings.decline_over)

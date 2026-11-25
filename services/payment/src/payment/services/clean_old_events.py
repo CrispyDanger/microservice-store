@@ -1,9 +1,10 @@
 from datetime import UTC, datetime, timedelta
 
-from payment.models import Event, ProcessedEvent
+from payment.models import CancelledOrder, Event, ProcessedEvent
 
 PUBLISHED_EVENTS_RETENTION = timedelta(days=7)
 PROCESSED_EVENTS_RETENTION = timedelta(days=14)
+CANCELLED_ORDERS_RETENTION = timedelta(days=14)
 
 
 async def clean_old_events() -> int:
@@ -12,4 +13,7 @@ async def clean_old_events() -> int:
     processed = await ProcessedEvent.filter(
         processed_at__lt=now - PROCESSED_EVENTS_RETENTION
     ).delete()
-    return events + processed
+    cancelled = await CancelledOrder.filter(
+        cancelled_at__lt=now - CANCELLED_ORDERS_RETENTION
+    ).delete()
+    return events + processed + cancelled

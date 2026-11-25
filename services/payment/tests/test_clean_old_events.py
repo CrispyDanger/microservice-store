@@ -3,7 +3,7 @@ from decimal import Decimal
 from uuid import uuid4
 
 from events.payments import PAYMENTS_TOPIC, PaymentFailed
-from payment.models import Event, Payment, PaymentStatus, ProcessedEvent
+from payment.models import CancelledOrder, Event, Payment, PaymentStatus, ProcessedEvent
 from payment.publishing import record_event
 from payment.services.clean_old_events import clean_old_events
 
@@ -50,6 +50,18 @@ async def test_processed_events_are_kept_for_fourteen_days():
 
     assert not await ProcessedEvent.filter(event_id=old.event_id).exists()
     assert await ProcessedEvent.filter(event_id=recent.event_id).exists()
+
+
+async def test_cancelled_orders_are_kept_for_fourteen_days():
+    old = await CancelledOrder.create(order_id=uuid4())
+    recent = await CancelledOrder.create(order_id=uuid4())
+    await CancelledOrder.filter(order_id=old.order_id).update(cancelled_at=ago(days=15))
+    await CancelledOrder.filter(order_id=recent.order_id).update(cancelled_at=ago(days=10))
+
+    assert await clean_old_events() == 1
+
+    assert not await CancelledOrder.filter(order_id=old.order_id).exists()
+    assert await CancelledOrder.filter(order_id=recent.order_id).exists()
 
 
 async def test_payments_are_kept():

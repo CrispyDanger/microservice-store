@@ -38,12 +38,13 @@ async def db():
 @pytest.fixture(autouse=True)
 async def clean_tables():
     conn = Tortoise.get_connection("default")
-    await conn.execute_script("TRUNCATE payments, events, processed_events CASCADE")
+    await conn.execute_script("TRUNCATE payments, events, processed_events, cancelled_orders CASCADE")
 
 
 @pytest.fixture(autouse=True)
 def clear_gateway():
     gateway.charges.clear()
+    gateway.refunds.clear()
 
 
 class FakeProducer:

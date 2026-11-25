@@ -6,7 +6,8 @@ from tortoise.transactions import in_transaction
 from events.inventory import StockReserved
 from events.payments import PAYMENTS_TOPIC, PaymentFailed, PaymentSucceeded
 from payment.gateway import PaymentDeclined, gateway
-from payment.models import Payment, PaymentStatus, ProcessedEvent
+from payment.locks import lock_order
+from payment.models import CancelledOrder, Payment, PaymentStatus, ProcessedEvent
 from payment.publishing import record_event
 
 logger = logging.getLogger(__name__)
@@ -14,8 +15,12 @@ logger = logging.getLogger(__name__)
 
 async def charge_payment(event: StockReserved) -> None:
     try:
-        async with in_transaction():
+        async with in_transaction() as conn:
             await ProcessedEvent.create(event_id=event.event_id)
+            await lock_order(conn, event.order_id)
+            if await CancelledOrder.exists(order_id=event.order_id):
+                logger.info("Order %s was cancelled, not charging", event.order_id)
+                return
             if await Payment.exists(order_id=event.order_id):
                 logger.info("Order %s is already charged", event.order_id)
                 return

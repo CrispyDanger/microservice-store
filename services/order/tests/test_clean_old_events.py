@@ -5,7 +5,7 @@ from uuid import uuid4
 from events.orders import ORDERS_TOPIC, OrderCancelled
 from order.models import Event, IdempotencyKey, Order, ProcessedEvent
 from order.publishing import record_event
-from order.services.purge_old_rows import purge_old_rows
+from order.services.clean_old_events import clean_old_events
 
 
 def ago(**kwargs) -> datetime:
@@ -35,14 +35,14 @@ async def make_idempotency_key(created_at: datetime) -> IdempotencyKey:
 
 
 async def test_nothing_to_delete_returns_zero():
-    assert await purge_old_rows() == 0
+    assert await clean_old_events() == 0
 
 
 async def test_published_events_are_kept_for_seven_days():
     old = await make_event(published_at=ago(days=8))
     recent = await make_event(published_at=ago(days=6))
 
-    await purge_old_rows()
+    await clean_old_events()
 
     assert not await Event.filter(id=old.id).exists()
     assert await Event.filter(id=recent.id).exists()
@@ -52,7 +52,7 @@ async def test_unpublished_events_are_never_deleted():
     await make_event(published_at=None)
     await Event.all().update(created_at=ago(days=30))
 
-    assert await purge_old_rows() == 0
+    assert await clean_old_events() == 0
     assert await Event.all().count() == 1
 
 
@@ -60,7 +60,7 @@ async def test_processed_events_are_kept_for_fourteen_days():
     old = await make_processed_event(ago(days=15))
     recent = await make_processed_event(ago(days=10))
 
-    await purge_old_rows()
+    await clean_old_events()
 
     assert not await ProcessedEvent.filter(event_id=old.event_id).exists()
     assert await ProcessedEvent.filter(event_id=recent.event_id).exists()
@@ -70,7 +70,7 @@ async def test_idempotency_keys_are_kept_for_a_day_and_their_orders_stay():
     old = await make_idempotency_key(ago(hours=25))
     recent = await make_idempotency_key(ago(hours=23))
 
-    await purge_old_rows()
+    await clean_old_events()
 
     assert not await IdempotencyKey.filter(id=old.id).exists()
     assert await IdempotencyKey.filter(id=recent.id).exists()
@@ -82,4 +82,4 @@ async def test_returns_the_number_of_deleted_rows():
     await make_processed_event(ago(days=15))
     await make_idempotency_key(ago(hours=25))
 
-    assert await purge_old_rows() == 3
+    assert await clean_old_events() == 3

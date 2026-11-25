@@ -12,6 +12,7 @@ from httpx import ASGITransport, AsyncClient  # noqa: E402
 from tortoise import Tortoise  # noqa: E402
 
 from payment.db import TORTOISE_ORM  # noqa: E402
+from payment.gateway import gateway  # noqa: E402
 from payment.main import app  # noqa: E402
 
 
@@ -37,7 +38,25 @@ async def db():
 @pytest.fixture(autouse=True)
 async def clean_tables():
     conn = Tortoise.get_connection("default")
-    await conn.execute_script("TRUNCATE payments CASCADE")
+    await conn.execute_script("TRUNCATE payments, events, processed_events CASCADE")
+
+
+@pytest.fixture(autouse=True)
+def clear_gateway():
+    gateway.charges.clear()
+
+
+class FakeProducer:
+    def __init__(self) -> None:
+        self.sent: list[tuple[str, bytes, bytes]] = []
+
+    async def send_and_wait(self, topic: str, key: bytes, value: bytes) -> None:
+        self.sent.append((topic, key, value))
+
+
+@pytest.fixture
+def producer() -> FakeProducer:
+    return FakeProducer()
 
 
 @pytest.fixture

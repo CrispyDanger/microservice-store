@@ -27,10 +27,10 @@ Last updated: 2026-11-24
 ### Payment service
 
 - [x] Persistence and Docker, same layout as inventory (port 8003, DB on 5436). No JWT: payment has no user-facing API yet.
-- [x] `Payment` model: id, order_id (unique), amount, status (`pending`/`succeeded`/`failed`/`refunded`), failure_reason.
-- [ ] Consume `StockReserved`: charge its `total` through a fake gateway, then record `PaymentSucceeded` or `PaymentFailed`.
-- [ ] Consume `OrderCancelled`: refund if the payment already succeeded. Covers a user cancel or a timeout that lands after the charge.
-- [ ] Outbox and `processed_events`, same as order.
+- [x] `Payment` model: id, order_id (unique), amount, status (`succeeded`/`failed`/`refunded`), failure_reason.
+- [x] Consume `StockReserved`: charge its `total` through a fake gateway (`gateway.py`, declines amounts over `PAYMENT_DECLINE_OVER`, default 1000), then record `PaymentSucceeded` or `PaymentFailed`. One payment per order.
+- [x] Outbox and `processed_events`, copied from inventory; consumer (`inventory` topic, group `payment`), relay and hourly cleanup in `lifespan`; `/health/relay`.
+- [ ] Consume `OrderCancelled`: refund if the payment already succeeded. Covers a user cancel or a timeout that lands after the charge. `OrderCancelled` (orders topic) can arrive before `StockReserved` (inventory topic), so a cancel with no payment yet must be remembered and the later `StockReserved` skipped, or the order gets charged after it was cancelled.
 
 ### Notifications service
 
@@ -39,7 +39,7 @@ Last updated: 2026-11-24
 
 ### Cross-cutting
 
-- [ ] Shared relay and consumer code. Inventory and payment need the same outbox relay and consumer loop as order. Inventory gets a copy; move them into a library under `libs/` when payment needs them too.
+- Relay and consumer code stays copied in each service, no shared library under `libs/` (decided 2026-11-24).
 - [ ] Configure flake8 with `max-line-length = 100` to match the code.
 - [ ] End-to-end test of the full saga across all services in Docker.
 
